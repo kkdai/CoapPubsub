@@ -35,7 +35,44 @@ func (c *CoapPubsubServer) genMsgID() uint16 {
 	return c.msgIndex
 }
 
-func (c *CoapPubsubServer) subscribe(topic string, client *net.UDPAddr) {
+func (c *CoapPubsubServer) removeSubscribe(topic string, client *net.UDPAddr) {
+	removeIndexT2C := -1
+	if val, exist := c.topicMapClients[topic]; exist {
+		for k, v := range val {
+			if v == client {
+				removeIndexT2C = k
+			}
+		}
+		if removeIndexT2C != -1 {
+			sliceClients := c.topicMapClients[topic]
+			if len(sliceClients) > 1 {
+				c.topicMapClients[topic] = append(sliceClients[:removeIndexT2C], sliceClients[removeIndexT2C+1:]...)
+			} else {
+				delete(c.topicMapClients, topic)
+			}
+		}
+	}
+
+	removeIndexC2T := -1
+	if val, exist := c.clientMapTopics[client]; exist {
+		for k, v := range val {
+			if v == topic {
+				removeIndexC2T = k
+			}
+		}
+		if removeIndexC2T != -1 {
+			sliceTopics := c.clientMapTopics[client]
+			if len(sliceTopics) > 1 {
+				c.clientMapTopics[client] = append(sliceTopics[:removeIndexC2T], sliceTopics[removeIndexC2T+1:]...)
+			} else {
+				delete(c.clientMapTopics, client)
+			}
+		}
+	}
+
+}
+
+func (c *CoapPubsubServer) addSubscribe(topic string, client *net.UDPAddr) {
 	topicFound := false
 	if val, exist := c.topicMapClients[topic]; exist {
 		for _, v := range val {
@@ -76,18 +113,17 @@ func (c *CoapPubsubServer) publish(l *net.UDPConn, topic string, msg string) {
 
 func (c *CoapPubsubServer) handleCoAPMessage(l *net.UDPConn, a *net.UDPAddr, m *coap.Message) *coap.Message {
 	topic := m.Path()[0]
-	etag := parseToString(m.Option(coap.ETag))
-	log.Println("cmd=", etag, " topic=", topic, " msg=", string(m.Payload))
-	log.Println("code=", m.Code, " option=", etag)
+	cmd := parseToString(m.Option(coap.ETag))
+	log.Println("cmd=", cmd, " topic=", topic, " msg=", string(m.Payload))
+	log.Println("code=", m.Code, " option=", cmd)
 
-	if etag == "SUB" {
+	if cmd == "SUB" {
 		log.Println("sub topic=", topic, " in client=", a)
-		c.subscribe(topic, a)
+		c.addSubscribe(topic, a)
 		c.responseOK(l, a, m)
 
-	} else if etag == "PUB" {
+	} else if cmd == "PUB" {
 		c.publish(l, topic, string(m.Payload))
-
 		c.responseOK(l, a, m)
 	}
 
