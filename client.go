@@ -14,22 +14,27 @@ type subConnection struct {
 }
 
 type CoapPubsubClient struct {
-	serAddr string
-	subList map[string]subConnection
+	msgIndex uint16
+	serAddr  string
+	subList  map[string]subConnection
 }
 
+// Create a pubsub client for CoAP protocol
+// It will connect to server and make sure it alive and start heart beat
+// To keep udp port open, we will send heart beat event to server every minutes
 func NewCoapPubsubClient(servAddr string) *CoapPubsubClient {
 	c := new(CoapPubsubClient)
 	c.subList = make(map[string]subConnection, 0)
 	c.serAddr = servAddr
 
-	//connection check if any error
+	//TODO: connection check if any error
 
 	//Start heart beat
 	go c.heartBeat()
 	return c
 }
 
+//Add Subscribetion on topic and return a channel for user to wait data
 func (c *CoapPubsubClient) AddSub(topic string) (chan string, error) {
 	if val, exist := c.subList[topic]; exist {
 		//if topic already sub, return and not send to server
@@ -56,7 +61,7 @@ func (c *CoapPubsubClient) AddSub(topic string) (chan string, error) {
 
 	//Send out to server
 	conn.Send(addSubReq)
-	go c.waitSubResponse(conn, subChan)
+	go c.waitSubResponse(conn, subChan, topic)
 
 	//Add client connection into member variable for heart beat
 	clientConn := subConnection{channel: subChan, clientCon: conn}
@@ -65,10 +70,12 @@ func (c *CoapPubsubClient) AddSub(topic string) (chan string, error) {
 	return subChan, nil
 }
 
-func (c *CoapPubsubClient) waitSubResponse(conn *coap.Conn, ch chan string) {
+func (c *CoapPubsubClient) waitSubResponse(conn *coap.Conn, ch chan string, topic string) {
 	var rv *coap.Message
 	var err error
-	for {
+	var keepLoop bool
+	keepLoop = true
+	for keepLoop {
 		if rv != nil {
 			if err != nil {
 				log.Fatalf("Error receiving: %v", err)
@@ -77,9 +84,17 @@ func (c *CoapPubsubClient) waitSubResponse(conn *coap.Conn, ch chan string) {
 		}
 		rv, err = conn.Receive()
 		log.Println("receiv:", rv, " err=", err)
-		ch <- string(rv.Payload)
+
+		if err == nil {
+			ch <- string(rv.Payload)
+		}
 
 		time.Sleep(time.Second)
+		if _, exist := c.subList[topic]; !exist {
+			//sub topic already remove, leave loop
+			log.Println("Loop topic:", topic, " already remove leave loop")
+			keepLoop = false
+		}
 	}
 }
 
@@ -87,7 +102,8 @@ func (c *CoapPubsubClient) RemoveSub(topic string) {
 }
 
 func (c *CoapPubsubClient) getMsgID() uint16 {
-	return 12345
+	c.msgIndex = c.msgIndex + 1
+	return c.msgIndex
 }
 
 func (c *CoapPubsubClient) heartBeat() {
