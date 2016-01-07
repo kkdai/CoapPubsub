@@ -21,6 +21,8 @@ type CoapPubsubServer struct {
 	topicMapClients stringMapChanList
 }
 
+//Create a new pubsub server using CoAP protocol
+//maxChannel: It is the subpub topic limitation size, suggest not lower than 1024 for basic usage
 func NewCoapPubsubServer(maxChannel int) *CoapPubsubServer {
 	cSev := new(CoapPubsubServer)
 	cSev.capacity = maxChannel
@@ -117,13 +119,20 @@ func (c *CoapPubsubServer) handleCoAPMessage(l *net.UDPConn, a *net.UDPAddr, m *
 	log.Println("cmd=", cmd, " topic=", topic, " msg=", string(m.Payload))
 	log.Println("code=", m.Code, " option=", cmd)
 
-	if cmd == "SUB" {
-		log.Println("sub topic=", topic, " in client=", a)
+	if cmd == "ADDSUB" {
+		log.Println("add sub topic=", topic, " in client=", a)
 		c.addSubscribe(topic, a)
 		c.responseOK(l, a, m)
-
+	} else if cmd == "REMSUB" {
+		log.Println("remove sub topic=", topic, " in client=", a)
+		c.removeSubscribe(topic, a)
+		c.responseOK(l, a, m)
 	} else if cmd == "PUB" {
 		c.publish(l, topic, string(m.Payload))
+		c.responseOK(l, a, m)
+	} else if cmd == "HB" {
+		//For heart beat request just return OK
+		log.Println("Got heart beat from ", a)
 		c.responseOK(l, a, m)
 	}
 
@@ -133,6 +142,7 @@ func (c *CoapPubsubServer) handleCoAPMessage(l *net.UDPConn, a *net.UDPAddr, m *
 	return nil
 }
 
+//Start to listen udp port and serve request, until faltal eror occur
 func (c *CoapPubsubServer) ListenAndServe(udpPort string) {
 	log.Fatal(coap.ListenAndServe("udp", udpPort,
 		coap.FuncHandler(func(l *net.UDPConn, a *net.UDPAddr, m *coap.Message) *coap.Message {

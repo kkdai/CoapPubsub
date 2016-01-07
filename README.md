@@ -4,6 +4,19 @@ PubSub over CoAP(Constrained Application Protocol
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/kkdai/CoapPubsub/master/LICENSE)  [![GoDoc](https://godoc.org/github.com/kkdai/CoapPubsub?status.svg)](https://godoc.org/github.com/kkdai/CoapPubsub)  [![Build Status](https://travis-ci.org/kkdai/CoapPubsub.svg?branch=master)](https://travis-ci.org/kkdai/CoapPubsub)
 
 
+Comparison between CoAP, XMPP, Restful HTTP, MQTT
+---------------
+
+| Protocol  |      CoAP      |  XMPP |RESTful HTTP | MQTT |
+|----------|:-------------:|------:|------:|------:|
+| Transport |  UDP | TCP| TCP | TCP |
+| Messaging |    Request/Response    |   Publish/Subscribe Request/Response |   Request/Response |   Publish/Subscribe  |
+| LLN Suitability (1000s nodes) | Excellent |    Excellent |    Excellent |    Excellent |
+| Success Storied | Utility Field Area Networks |    Remote management of consumer white goods |    Smart Energy Profile 2 (premise energy management/home services) |    Extending enterprise messaging into IoT applications |
+    
+    
+
+
 Features
 ---------------
 
