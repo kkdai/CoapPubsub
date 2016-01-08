@@ -79,6 +79,25 @@ func main() {
 }
 ```
 
+ex:  Add subscription on topic "t1"
+
+```
+client ADDSUB t1 msg
+```
+
+ex:  Remove subscription on topic "t1"
+
+```
+client REMSUB t1 msg
+```
+
+ex:  Publish "mmmmm" to subscription topic "t1"
+
+```
+client PUB t1 mmmmm
+```
+
+
 TODO
 ---------------
 
