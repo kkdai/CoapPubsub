@@ -8,6 +8,11 @@ PubSub client/server over CoAP(Constrained Application Protocol)
 It is a [Sub/Pub](http://redis.io/topics/pubsub) server and client using [CoAP protocol](http://tools.ietf.org/html/rfc7252).
 
 
+Note
+---------------
+
+It will keep a heart beat signal from client to server if you subscription a topic to remain your UDP port channel.
+
 Install
 ---------------
 `go get github.com/kkdai/CoapPubsub`
@@ -107,9 +112,7 @@ TODO
 
 Benchmark
 ---------------
-TBC
-
-
+TBD
 
 Inspired
 ---------------
