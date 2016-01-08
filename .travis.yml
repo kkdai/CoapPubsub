@@ -12,7 +12,7 @@ before_install:
     - go get github.com/mattn/goveralls
 
 script:
-    - go vet ./...
+    - go vet 
 #    - $HOME/gopath/bin/goveralls -coverprofile=coverage.cov -service=travis-ci
 #    - bash <(curl -s https://codecov.io/bash)
 #- go test -bench=. -benchmem ./...
