@@ -10,6 +10,11 @@ import (
 
 func main() {
 	flag.Parse()
+	if len(flag.Args()) < 3 {
+		fmt.Println("Need more arg: cmd topic msg")
+		return
+	}
+
 	cmd := flag.Arg(0)
 	topic := flag.Arg(1)
 	msg := flag.Arg(2)

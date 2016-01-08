@@ -30,44 +30,62 @@ func NewCoapPubsubClient(servAddr string) *CoapPubsubClient {
 	//TODO: connection check if any error
 
 	//Start heart beat
+	c.msgIndex = GetIPv4Int16() + GetLocalRandomInt()
+	log.Println("Init msgID=", c.msgIndex)
 	go c.heartBeat()
 	return c
 }
 
-//Add Subscribetion on topic and return a channel for user to wait data
+//Add Subscription on topic and return a channel for user to wait data
 func (c *CoapPubsubClient) AddSub(topic string) (chan string, error) {
 	if val, exist := c.subList[topic]; exist {
-		//if topic already sub, return and not send to server
+		//if topic already exist in sub, return and not send to server
 		return val.channel, nil
 	}
 
-	addSubReq := coap.Message{
+	conn, err := c.sendPubsubReq("ADDSUB", topic)
+	if err != nil {
+		return nil, err
+	}
+
+	subChan := make(chan string)
+	go c.waitSubResponse(conn, subChan, topic)
+
+	//Add client connection into member variable for heart beat
+	clientConn := subConnection{channel: subChan, clientCon: conn}
+	c.subList[topic] = clientConn
+	return subChan, nil
+}
+
+//Remove Subscribetion on topic
+func (c *CoapPubsubClient) RemoveSub(topic string) error {
+	if _, exist := c.subList[topic]; !exist {
+		//if topic not in sub list, return and not send to server
+		return nil
+	}
+
+	_, err := c.sendPubsubReq("REMSUB", topic)
+	return err
+}
+
+func (c *CoapPubsubClient) sendPubsubReq(cmd string, topic string) (*coap.Conn, error) {
+	Req := coap.Message{
 		Type:      coap.Confirmable,
 		Code:      coap.GET,
 		MessageID: c.getMsgID(),
 		Payload:   []byte(""),
 	}
 
-	addSubReq.SetOption(coap.ETag, "ADDSUB")
-	addSubReq.SetPathString(topic)
+	Req.SetOption(coap.ETag, cmd)
+	Req.SetPathString(topic)
 
 	conn, err := coap.Dial("udp", c.serAddr)
 	if err != nil {
-		log.Printf("ADDSUB>>Error dialing: %v \n", err)
+		log.Printf(cmd, ">>Error dialing: %v \n", err)
 		return nil, errors.New("Dial failed")
 	}
-
-	subChan := make(chan string)
-
-	//Send out to server
-	conn.Send(addSubReq)
-	go c.waitSubResponse(conn, subChan, topic)
-
-	//Add client connection into member variable for heart beat
-	clientConn := subConnection{channel: subChan, clientCon: conn}
-	c.subList[topic] = clientConn
-
-	return subChan, nil
+	conn.Send(Req)
+	return conn, err
 }
 
 func (c *CoapPubsubClient) waitSubResponse(conn *coap.Conn, ch chan string, topic string) {
@@ -83,7 +101,6 @@ func (c *CoapPubsubClient) waitSubResponse(conn *coap.Conn, ch chan string, topi
 			log.Printf("Got %s", rv.Payload)
 		}
 		rv, err = conn.Receive()
-		log.Println("receiv:", rv, " err=", err)
 
 		if err == nil {
 			ch <- string(rv.Payload)
@@ -96,9 +113,6 @@ func (c *CoapPubsubClient) waitSubResponse(conn *coap.Conn, ch chan string, topi
 			keepLoop = false
 		}
 	}
-}
-
-func (c *CoapPubsubClient) RemoveSub(topic string) {
 }
 
 func (c *CoapPubsubClient) getMsgID() uint16 {

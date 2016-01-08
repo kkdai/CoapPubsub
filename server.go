@@ -28,7 +28,8 @@ func NewCoapPubsubServer(maxChannel int) *CoapPubsubServer {
 	cSev.capacity = maxChannel
 	cSev.clientMapTopics = make(map[*net.UDPAddr][]string, maxChannel)
 	cSev.topicMapClients = make(map[string][]*net.UDPAddr, maxChannel)
-	cSev.msgIndex = 0
+	cSev.msgIndex = GetIPv4Int16() + GetLocalRandomInt()
+	log.Println("Init msgID=", cSev.msgIndex)
 	return cSev
 }
 
@@ -37,7 +38,7 @@ func (c *CoapPubsubServer) genMsgID() uint16 {
 	return c.msgIndex
 }
 
-func (c *CoapPubsubServer) removeSubscribe(topic string, client *net.UDPAddr) {
+func (c *CoapPubsubServer) removeSubscription(topic string, client *net.UDPAddr) {
 	removeIndexT2C := -1
 	if val, exist := c.topicMapClients[topic]; exist {
 		for k, v := range val {
@@ -74,7 +75,7 @@ func (c *CoapPubsubServer) removeSubscribe(topic string, client *net.UDPAddr) {
 
 }
 
-func (c *CoapPubsubServer) addSubscribe(topic string, client *net.UDPAddr) {
+func (c *CoapPubsubServer) addSubscription(topic string, client *net.UDPAddr) {
 	topicFound := false
 	if val, exist := c.topicMapClients[topic]; exist {
 		for _, v := range val {
@@ -114,18 +115,22 @@ func (c *CoapPubsubServer) publish(l *net.UDPConn, topic string, msg string) {
 }
 
 func (c *CoapPubsubServer) handleCoAPMessage(l *net.UDPConn, a *net.UDPAddr, m *coap.Message) *coap.Message {
-	topic := m.Path()[0]
-	cmd := parseToString(m.Option(coap.ETag))
+	var topic string
+	if m.Path() != nil {
+		topic = m.Path()[0]
+	}
+
+	cmd := ParseUint8ToString(m.Option(coap.ETag))
 	log.Println("cmd=", cmd, " topic=", topic, " msg=", string(m.Payload))
 	log.Println("code=", m.Code, " option=", cmd)
 
 	if cmd == "ADDSUB" {
 		log.Println("add sub topic=", topic, " in client=", a)
-		c.addSubscribe(topic, a)
+		c.addSubscription(topic, a)
 		c.responseOK(l, a, m)
 	} else if cmd == "REMSUB" {
 		log.Println("remove sub topic=", topic, " in client=", a)
-		c.removeSubscribe(topic, a)
+		c.removeSubscription(topic, a)
 		c.responseOK(l, a, m)
 	} else if cmd == "PUB" {
 		c.publish(l, topic, string(m.Payload))
