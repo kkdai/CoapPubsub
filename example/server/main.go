@@ -8,6 +8,6 @@ import (
 
 func main() {
 	log.Println("Server start....")
-	serv := NewCoapPubsubServer(10)
+	serv := NewCoapPubsubServer(1024)
 	serv.ListenAndServe(":5683")
 }

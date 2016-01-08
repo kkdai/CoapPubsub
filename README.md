@@ -1,28 +1,11 @@
-PubSub over CoAP(Constrained Application Protocol 
+PubSub client/server over CoAP(Constrained Application Protocol)
 ==================
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/kkdai/CoapPubsub/master/LICENSE)  [![GoDoc](https://godoc.org/github.com/kkdai/CoapPubsub?status.svg)](https://godoc.org/github.com/kkdai/CoapPubsub)  [![Build Status](https://travis-ci.org/kkdai/CoapPubsub.svg?branch=master)](https://travis-ci.org/kkdai/CoapPubsub)
-
-
-Comparison between CoAP, XMPP, Restful HTTP, MQTT
----------------
-
-| Protocol  |      CoAP      |  XMPP |RESTful HTTP | MQTT |
-|----------|:-------------:|------:|------:|------:|
-| Transport |  UDP | TCP| TCP | TCP |
-| Messaging |    Request/Response    |   Publish/Subscribe Request/Response |   Request/Response |   Publish/Subscribe  |
-| LLN Suitability (1000s nodes) | Excellent |    Excellent |    Excellent |    Excellent |
-| Success Storied | Utility Field Area Networks |    Remote management of consumer white goods |    Smart Energy Profile 2 (premise energy management/home services) |    Extending enterprise messaging into IoT applications |
-    
     
 
 
-Features
----------------
-
-
-
-
+It is a [Sub/Pub](http://redis.io/topics/pubsub) server and client using [CoAP protocol](http://tools.ietf.org/html/rfc7252).
 
 
 Install
@@ -33,18 +16,81 @@ Install
 Usage
 ---------------
 
-```go
+#### Server side example
 
+Create a 1024 buffer for pub/sub server and listen 5683 (default port for CoAP)
+
+```go
+package main
+
+import (
+	"log"
+
+	. "github.com/kkdai/CoapPubsub"
+)
+
+func main() {
+	log.Println("Server start....")
+	serv := NewCoapPubsubServer(1024)
+	serv.ListenAndServe(":5683")
+}
 
 ```
 
+#### Client side example
+
+Create a client to read input flag to send add/remove subscription to server.
+
+```go
+package main
+
+import (
+	"flag"
+	"fmt"
+	"log"
+
+	. "github.com/kkdai/CoapPubsub"
+)
+
+func main() {
+	flag.Parse()
+	if len(flag.Args()) < 3 {
+		fmt.Println("Need more arg: cmd topic msg")
+		return
+	}
+
+	cmd := flag.Arg(0)
+	topic := flag.Arg(1)
+	msg := flag.Arg(2)
+
+	fmt.Println(cmd, topic, msg)
+
+	client := NewCoapPubsubClient("localhost:5683")
+	if client == nil {
+		log.Fatalln("Cannot connect to server, please check your setting.")
+	}
+
+	if cmd == "ADDSUB" {
+		ch, err := client.AddSub(topic)
+		log.Println(" ch:", ch, " err=", err)
+		log.Println("Got pub from topic:", topic, " pub:", <-ch)
+	}
+	log.Println("Done")
+}
+```
+
+TODO
+---------------
+
+- Hadle for UDP packet lost condition
+- Gracefully network access
 
 
 Benchmark
 ---------------
+TBC
 
-```
-```
+
 
 Inspired
 ---------------
