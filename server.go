@@ -147,7 +147,7 @@ func (c *CoapPubsubServer) handleCoAPMessage(l *net.UDPConn, a *net.UDPAddr, m *
 	return nil
 }
 
-//Start to listen udp port and serve request, until faltal eror occur
+//ListenAndServe starts to listen udp port and serve request, until faltal eror occur
 func (c *CoapPubsubServer) ListenAndServe(udpPort string) {
 	log.Fatal(coap.ListenAndServe("udp", udpPort,
 		coap.FuncHandler(func(l *net.UDPConn, a *net.UDPAddr, m *coap.Message) *coap.Message {

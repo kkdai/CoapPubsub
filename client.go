@@ -36,7 +36,7 @@ func NewCoapPubsubClient(servAddr string) *CoapPubsubClient {
 	return c
 }
 
-//Add Subscription on topic and return a channel for user to wait data
+//AddSub adds Subscription on topic and return a channel for user to wait data
 func (c *CoapPubsubClient) AddSub(topic string) (chan string, error) {
 	if val, exist := c.subList[topic]; exist {
 		//if topic already exist in sub, return and not send to server
@@ -57,7 +57,7 @@ func (c *CoapPubsubClient) AddSub(topic string) (chan string, error) {
 	return subChan, nil
 }
 
-//Remove Subscribetion on topic
+//RemoveSub removes Subscribetion on topic
 func (c *CoapPubsubClient) RemoveSub(topic string) error {
 	if _, exist := c.subList[topic]; !exist {
 		//if topic not in sub list, return and not send to server
