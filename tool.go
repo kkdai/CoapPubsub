@@ -22,13 +22,13 @@ func ParseUint8ToString(in interface{}) string {
 	}
 }
 
-//Get random number locally
+//GetLocalRandomInt gets random number locally
 func GetLocalRandomInt() uint16 {
 	rand.Seed(time.Now().UnixNano())
 	return uint16(rand.Intn(1000))
 }
 
-//Get local IPV4 address to uint16 by <<8
+//GetIPv4Int16 gets local IPV4 address to uint16 by <<8
 func GetIPv4Int16() uint16 {
 
 	ifaces, err := net.Interfaces()
